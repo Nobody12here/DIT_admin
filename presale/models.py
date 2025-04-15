@@ -12,4 +12,4 @@ class Presale(models.Model):
         db_table = 'presale'
 
     def __str__(self):
-        return self.name
+        return self.receiver_address
