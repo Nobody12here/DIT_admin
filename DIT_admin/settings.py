@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-ptff_!e-vx@)79j%06iwc)(^5qs$p64vvm(b4ko-22*)01gxgg
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['38.242.137.199','localhost','127.0.0.1','http://localhost:5173/','https://dit-presale.vercel.app/']
+ALLOWED_HOSTS = ['38.242.137.199','localhost','127.0.0.1','http://localhost:5173/','https://dit-presale.vercel.app/','ditadmin.duckdns.org']
 
 
 # Application definition
