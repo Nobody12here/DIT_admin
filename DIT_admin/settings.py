@@ -29,6 +29,7 @@ ALLOWED_HOSTS = ['38.242.137.199','localhost','127.0.0.1','http://localhost:5173
 
 
 # Application definition
+ 
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -40,7 +41,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'drf_yasg',
     'rest_framework',
-    'presale',  
+    'presale',
+    'nft_reward'  
 ]
 
 MIDDLEWARE = [
