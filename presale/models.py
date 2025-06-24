@@ -9,7 +9,7 @@ class Presale(models.Model):
     receiver_address = models.CharField(max_length=255)
     tokens_delivered = models.BooleanField(default=False)
     class Meta:
-        db_table = 'presale'
+        db_table = 'diamond_token_store'
 
     def __str__(self):
         return self.receiver_address
