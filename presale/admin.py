@@ -1,5 +1,6 @@
 from django.contrib import admin
 from presale.models import Presale
+admin.site.site_header = "Diamond Token Admin"
 
 @admin.register(Presale)
 class PresaleAdmin(admin.ModelAdmin):

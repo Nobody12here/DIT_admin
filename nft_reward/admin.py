@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import NFTReward
 
-
+admin.site.site_header = "Diamond Token Admin"
 @admin.register(NFTReward)
 class NFTRewardAdmin(admin.ModelAdmin):
     list_display = (

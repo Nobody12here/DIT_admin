@@ -10,6 +10,7 @@ class Presale(models.Model):
     tokens_delivered = models.BooleanField(default=False)
     class Meta:
         db_table = 'diamond_token_store'
-
+        verbose_name = 'diamond token store'
+        verbose_name_plural = 'diamond token store'
     def __str__(self):
         return self.receiver_address
