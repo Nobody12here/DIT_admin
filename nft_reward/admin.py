@@ -1,9 +1,12 @@
 from django.contrib import admin
 from .models import NFTReward
+from unfold.admin import ModelAdmin
 
 admin.site.site_header = "Diamond Token Admin"
+
+
 @admin.register(NFTReward)
-class NFTRewardAdmin(admin.ModelAdmin):
+class NFTRewardAdmin(ModelAdmin):
     list_display = (
         "email",
         "wallet_address",

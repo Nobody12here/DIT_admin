@@ -1,9 +1,11 @@
 from django.contrib import admin
 from presale.models import Presale
+from unfold.admin import ModelAdmin
+
 admin.site.site_header = "Diamond Token Admin"
 
 @admin.register(Presale)
-class PresaleAdmin(admin.ModelAdmin):
+class PresaleAdmin(ModelAdmin):
     list_display = (
         'id',
         'receiver_address',
