@@ -1,0 +1,9 @@
+{% extends "admin/base_site.html" %}
+{% load unfold %}
+
+{% block content %}
+<div class="container mx-auto px-4">
+
+    {% include "unfold/components/table.html" with table=table card_included=1 striped=1 %}
+</div>
+{% endblock %}

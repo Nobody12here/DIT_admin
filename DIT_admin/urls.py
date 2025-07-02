@@ -39,5 +39,5 @@ urlpatterns = [
     path("api/presale/", include("presale.urls")),
     path("api/nft/", include("nft_reward.urls")),
     path("api/docs/", schema_view.with_ui("swagger"), name="drf_yasg"),
-    
+    path ("api/external_users/",include("external_users.urls")),
 ]
