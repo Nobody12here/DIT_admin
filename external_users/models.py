@@ -10,8 +10,8 @@ class ExternalUser(models.Model):
 
     class Meta:
         managed = False  # ✅ No DB table
-        verbose_name = "External User"
-        verbose_name_plural = "External Users"
+        verbose_name = "Community Member"
+        verbose_name_plural = "Community Members"
 
     def __str__(self):
         return self.display_name
