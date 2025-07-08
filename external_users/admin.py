@@ -7,7 +7,6 @@ import requests
 
 class ExternalUserAdmin(ModelAdmin):
     change_list_template = "admin/external_users_changelist.html"
-
     def changelist_view(self, request, extra_context=None):
         header = {"AccessToken": "8b2be529-0afc-43a2-b8c7-27dfebcfeb81"}
         try:
@@ -23,6 +22,7 @@ class ExternalUserAdmin(ModelAdmin):
         table_data = []
         for index, item in enumerate(data):
             wallet_details = item.get("walletDetails")
+            nft_details = item.get("membershipNftsWithCounts")
             if isinstance(wallet_details, dict):
                 wallet_address = wallet_details.get("walletAddress", "-")
                 wallet_provider = wallet_details.get("walletProvider","-")
@@ -35,7 +35,12 @@ class ExternalUserAdmin(ModelAdmin):
                     item.get("email", "-"),
                     wallet_address if wallet_address else "-",
                     item.get("ditTokenBalance", "0"),
-                    wallet_provider 
+                    wallet_provider ,
+                    nft_details.get("Flawless Diamonds"),
+                    nft_details.get("Red Diamonds"),
+                    nft_details.get("Blue Diamonds"),
+                    nft_details.get("Green Diamonds"),
+                    nft_details.get("Black Diamonds"),
                 ]
             )
 
@@ -46,7 +51,12 @@ class ExternalUserAdmin(ModelAdmin):
                 "Email",
                 "Wallet Address",
                 "DIT Token Balance",
-                "Wallet provider"
+                "Wallet provider",
+                "Flawless",
+                "Red",
+                "Blue",
+                "Green",
+                "Black",
             ],
             "rows": table_data,
         }
