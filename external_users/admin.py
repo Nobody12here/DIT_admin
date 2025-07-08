@@ -4,6 +4,7 @@ from django.template.response import TemplateResponse
 from .models import ExternalUser
 import requests
 
+admin.site.site_header = "Diamond Token Admin"
 
 class ExternalUserAdmin(ModelAdmin):
     change_list_template = "admin/external_users_changelist.html"
