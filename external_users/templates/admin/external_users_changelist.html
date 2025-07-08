@@ -4,6 +4,16 @@
 {% block content %}
 <div class="container mx-auto px-4">
 
+    <form method="get" class="mb-4 flex items-center gap-2">
+        <input type="text" name="search" value="{{ search_query|default:'' }}"
+            placeholder="Search by Email or Wallet Address"
+            class="border border-gray-300 dark:border-gray-700 px-4 py-2 rounded w-full max-w-md" />
+        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+            Search
+        </button>
+    </form>
+    
     {% include "unfold/components/table.html" with table=table card_included=1 striped=1 %}
+    
 </div>
 {% endblock %}
