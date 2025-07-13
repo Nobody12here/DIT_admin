@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     'rest_framework',
     'presale',
+    'event',
     'external_users',
     'nft_reward'  
 ]

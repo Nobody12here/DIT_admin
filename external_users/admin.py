@@ -23,9 +23,7 @@ class ExternalUserAdmin(ModelAdmin):
             data = response.json()["data"]["userDetailsWithTokenCount"]
         except Exception:
             data = []
-        #Sorting Logic
-        sort_field = request.GET.get("sort")
-        order = request.GET.get("order", "asc")
+
         # Build table rows
         table_data = []
         for index, item in enumerate(data):
@@ -51,17 +49,6 @@ class ExternalUserAdmin(ModelAdmin):
                     nft_details.get("Black Diamonds"),
                 ]
             )
-        sort_map = {
-        "Flawless": 6,
-        "Red": 7,
-        "Blue": 8,
-        "Green": 9,
-        "Black": 10,
-        }
-        if sort_field in sort_map:
-            col_index = sort_map[sort_field]
-            table_data.sort(key=lambda x: x[col_index], reverse=(order == "desc"))
-
         context = {
             "opts": self.model._meta,
             "title": "Community Members",
