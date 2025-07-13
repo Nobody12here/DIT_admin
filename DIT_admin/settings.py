@@ -15,6 +15,9 @@ import os
 from django.templatetags.static import static
 
 UNFOLD = {
+    "SITE_HEADER": "Diamond Club Admin",
+    "SITE_TITLE": "Diamond Admin",
+    "SITE_BRAND": "Diamond Club",
     "STYLES": [
         lambda request: static("css/styles.css"),
     ],

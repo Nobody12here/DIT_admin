@@ -15,9 +15,7 @@ class ExternalUserAPIView(APIView):
             response = requests.get(
                 "https://api-community-diamond-club.io/api/admin/users", headers=header
             )
-            print(response.json())
             users_data = response.json()["data"]["userDetailsWithTokenCount"]
-            print(users_data)
         except Exception as e:
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
