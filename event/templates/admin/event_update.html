@@ -1,0 +1,67 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrahead %}{{ block.super }}
+    <script src="{% url 'admin:jsi18n' %}"></script>
+    {{ media }}
+{% endblock %}
+
+{% block bodyclass %}{{ block.super }} app-custom custom-form{% endblock %}
+
+{% block content %}
+<div class="px-4">
+    <div class="container mb-6 mx-auto -my-3 lg:mb-12">
+        <ul class="flex flex-wrap">
+            {% url 'admin:index' as link %}
+            {% trans 'Home' as name %}
+            {% include 'unfold/helpers/breadcrumb_item.html' with link=link name=name %}
+            {% include 'unfold/helpers/breadcrumb_item.html' with link='' name=title %}
+        </ul>
+    </div>
+</div>
+
+<div class="container mx-auto px-4">
+  <div class="flex flex-col">
+    <h2 class="font-semibold mb-4 text-font-important-light text-lg dark:text-font-important-dark">
+      {{ title }}
+    </h2>
+
+    <form method="post"
+          class="bg-white dark:bg-base-900 border border-base-200 dark:border-base-800 rounded-default shadow-xs p-6 space-y-6 w-full max-w-2xl"
+          enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="text-sm text-red-600 mb-4">
+          {{ form.non_field_errors }}
+        </div>
+      {% endif %}
+
+      {% for field in form %}
+        <div class="flex flex-col">
+          <label class="text-sm font-medium text-font-important-light dark:text-font-important-dark mb-1">
+            {{ field.label_tag }}
+          </label>
+          {{ field }}
+          {% if field.errors %}
+            <div class="text-sm text-red-600 mt-1">
+              {{ field.errors }}
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+
+      <div class="flex justify-end">
+        <button type="submit"
+                class="inline-flex items-center justify-center rounded-default bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 transition-colors duration-150">
+          {% trans "Save" %}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block footer %}
+  {% block submit_buttons_bottom %}{% endblock %}
+{% endblock %}
