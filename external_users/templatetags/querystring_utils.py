@@ -1,18 +1,11 @@
-# your_app/templatetags/querystring_utils.py
+# templatetags/custom_filters.py
 from django import template
-
 register = template.Library()
 
-
-@register.simple_tag
-def toggle_filter(request, param, value):
-    query = request.GET.copy()
-
-    values = query.getlist(param)
-    if value in values:
-        values.remove(value)
-    else:
-        values.append(value)
-
-    query.setlist(param, values)
-    return "?" + query.urlencode()
+@register.filter
+def get_row_columns(row):
+    print(row)
+    return [
+        row.id, row.display_name, row.email, row.wallet_address, row.dit_token_balance,
+        row.wallet_provider, row.flawless, row.red, row.blue, row.green, row.black
+    ]

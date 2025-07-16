@@ -1,9 +1,97 @@
 {% extends "admin/base_site.html" %}
 {% block content %}
 {% load i18n unfold %}
+
 <div class="container mx-auto px-4">
+    <div class="flex flex-col {% if class %}{{ class }}{% endif %}">
+        {% if title %}
+        <h3 class="font-semibold mb-1 text-font-important-light text-sm dark:text-font-important-dark">
+            {{ title }}
+        </h3>
+        {% endif %}
 
-    {% include "unfold/components/table.html" with table=table card_included=1 striped=1 %}
+        {% if cl.has_filters %}
+        <div class="mb-4">
+            {% for spec in cl.filter_specs %}
+                {% include "unfold/filters/vertical_filter.html" with title=spec.title choices=spec.choices spec=spec %}
+            {% endfor %}
+        </div>
+        {% endif %}
 
+        <button onclick="resetTableFilter()" class="my-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-fit">
+            Reset Filter
+        </button>
+
+        <div class="{% if card_included == 1 %}-m-6{% else %} bg-white flex flex-col grow lg:border lg:border-base-200 lg:overflow-hidden lg:rounded-default lg:shadow-xs{% endif %} lg:dark:border-base-800 dark:bg-base-900">
+            <div {% if height %}style="max-height: {{ height }}px;" data-simplebar{% endif %}>
+                <table class="block border-spacing-none border-separate w-full lg:table">
+                    <thead class="text-font-important-light dark:text-font-important-dark {% if height %}sticky top-0{% endif %}">
+                        <tr class="bg-base-50 dark:bg-base-900">
+                            {% for header in table_headers %}
+                            <th class="align-middle border-b border-base-200 font-semibold py-2 text-left whitespace-nowrap sortable column-description hidden px-3 lg:table-cell dark:border-base-800 dark:bg-white/[.02] {% if card_included == 1 %}first:pl-6 last:pr-6{% endif %} cursor-pointer"
+                                data-column-index="{{ forloop.counter0 }}">
+                                {{ header|capfirst }}
+                            </th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+
+                    <tbody class="block lg:table-row-group">
+                        {% for row in table_rows %}
+                        <tr class="{% if striped == 1 %}{% cycle '' 'bg-base-50 dark:bg-white/[.02]' %}{% endif %} block group {% if forloop.first %}first-row{% endif %} {% if not card_included == 1 %}border border-base-200 mb-3 rounded-default shadow-xs{% else %}border-b border-base-200 last:border-b-0{% endif %} lg:table-row lg:border-none lg:mb-0 lg:shadow-none dark:border-base-800">
+                            
+                            <td class="px-3 py-2 align-middle flex border-t border-base-200 font-normal gap-4 min-w-0 overflow-hidden text-left before:flex before:capitalize before:content-[attr(data-label)] before:font-semibold before:text-font-important-light dark:before:text-font-important-dark before:items-center before:mr-auto first:border-t-0 lg:group-[.first-row]:border-t-0 lg:before:hidden lg:py-3 lg:table-cell dark:border-base-800" data-label="ID" data-col="0">{{ row.id }}</td>
+                            <td class="px-3 py-2 align-middle flex border-t border-base-200 font-normal gap-4 min-w-0 overflow-hidden text-left before:flex before:capitalize before:content-[attr(data-label)] before:font-semibold before:text-font-important-light dark:before:text-font-important-dark before:items-center before:mr-auto lg:before:hidden lg:py-3 lg:table-cell dark:border-base-800" data-label="Display name" data-col="1">{{ row.display_name }}</td>
+                            <td class="px-3 py-2 align-middle flex border-t border-base-200 font-normal gap-4 min-w-0 overflow-hidden text-left before:flex before:capitalize before:content-[attr(data-label)] before:font-semibold before:text-font-important-light dark:before:text-font-important-dark before:items-center before:mr-auto lg:before:hidden lg:py-3 lg:table-cell dark:border-base-800" data-label="Email" data-col="2">{{ row.email }}</td>
+                            <td class="px-3 py-2 align-middle flex border-t border-base-200 font-normal gap-4 min-w-0 overflow-hidden text-left before:flex before:capitalize before:content-[attr(data-label)] before:font-semibold before:text-font-important-light dark:before:text-font-important-dark before:items-center before:mr-auto lg:before:hidden lg:py-3 lg:table-cell dark:border-base-800" data-label="Wallet address" data-col="3">{{ row.wallet_address }}</td>
+                            <td class="px-3 py-2 align-middle flex border-t border-base-200 font-normal gap-4 min-w-0 overflow-hidden text-left before:flex before:capitalize before:content-[attr(data-label)] before:font-semibold before:text-font-important-light dark:before:text-font-important-dark before:items-center before:mr-auto lg:before:hidden lg:py-3 lg:table-cell dark:border-base-800" data-label="DIT balance" data-col="4">{{ row.dit_token_balance }}</td>
+                            <td class="px-3 py-2 align-middle flex border-t border-base-200 font-normal gap-4 min-w-0 overflow-hidden text-left before:flex before:capitalize before:content-[attr(data-label)] before:font-semibold before:text-font-important-light dark:before:text-font-important-dark before:items-center before:mr-auto lg:before:hidden lg:py-3 lg:table-cell dark:border-base-800" data-label="Wallet provider" data-col="5">{{ row.wallet_provider }}</td>
+                            <td class="px-3 py-2 align-middle flex border-t border-base-200 font-normal gap-4 min-w-0 overflow-hidden text-left before:flex before:capitalize before:content-[attr(data-label)] before:font-semibold before:text-font-important-light dark:before:text-font-important-dark before:items-center before:mr-auto lg:before:hidden lg:py-3 lg:table-cell dark:border-base-800" data-label="Flawless" data-col="6">{{ row.flawless }}</td>
+                            <td class="px-3 py-2 align-middle flex border-t border-base-200 font-normal gap-4 min-w-0 overflow-hidden text-left before:flex before:capitalize before:content-[attr(data-label)] before:font-semibold before:text-font-important-light dark:before:text-font-important-dark before:items-center before:mr-auto lg:before:hidden lg:py-3 lg:table-cell dark:border-base-800" data-label="Red" data-col="7">{{ row.red }}</td>
+                            <td class="px-3 py-2 align-middle flex border-t border-base-200 font-normal gap-4 min-w-0 overflow-hidden text-left before:flex before:capitalize before:content-[attr(data-label)] before:font-semibold before:text-font-important-light dark:before:text-font-important-dark before:items-center before:mr-auto lg:before:hidden lg:py-3 lg:table-cell dark:border-base-800" data-label="Blue" data-col="8">{{ row.blue }}</td>
+                            <td class="px-3 py-2 align-middle flex border-t border-base-200 font-normal gap-4 min-w-0 overflow-hidden text-left before:flex before:capitalize before:content-[attr(data-label)] before:font-semibold before:text-font-important-light dark:before:text-font-important-dark before:items-center before:mr-auto lg:before:hidden lg:py-3 lg:table-cell dark:border-base-800" data-label="Green" data-col="9">{{ row.green }}</td>
+                            <td class="px-3 py-2 align-middle flex border-t border-base-200 font-normal gap-4 min-w-0 overflow-hidden text-left before:flex before:capitalize before:content-[attr(data-label)] before:font-semibold before:text-font-important-light dark:before:text-font-important-dark before:items-center before:mr-auto lg:before:hidden lg:py-3 lg:table-cell dark:border-base-800" data-label="Black" data-col="10">{{ row.black }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="{{ table_headers|length }}" class="px-3 py-2 text-center">
+                                No data found
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const headers = document.querySelectorAll("th[data-column-index]");
+        const rows = document.querySelectorAll("tbody tr");
+
+        headers.forEach(header => {
+            header.addEventListener("click", function () {
+                const colIndex = this.getAttribute("data-column-index");
+
+                rows.forEach(row => {
+                    const td = row.querySelector(`td[data-col='${colIndex}']`);
+                    const value = td ? td.textContent.trim() : "";
+
+                    if (value && value !== "0" && value !== "-") {
+                        row.style.display = "";
+                    } else {
+                        row.style.display = "none";
+                    }
+                });
+            });
+        });
+    });
+
+    function resetTableFilter() {
+        const rows = document.querySelectorAll("tbody tr");
+        rows.forEach(row => row.style.display = "");
+    }
+</script>
 {% endblock %}
