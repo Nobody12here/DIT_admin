@@ -16,6 +16,7 @@ class EventForm(forms.Form):
     title = forms.CharField()
     time = forms.CharField()
     link = forms.URLField(required=False)
+    image = forms.ImageField(required=False)
     isActive = forms.BooleanField(required=False)
 
 
@@ -43,19 +44,13 @@ class EventAdmin(ModelAdmin):
         try:
             response = requests.get(list_api_url, headers=headers)
             all_events = response.json()["data"]["eventDetails"]
-
-            # Find the event with the matching _id
             event = next((e for e in all_events if e.get("_id") == event_id), None)
-
             if not event:
                 raise Exception(f"Event with ID {event_id} not found")
-
         except Exception as e:
-            print("❌ Could not fetch event data:", e)
             messages.error(request, f"Failed to load event: {e}")
             return redirect("..")
 
-        # GET request — show the form
         if request.method == "GET":
             form = EventForm(
                 initial={
@@ -69,24 +64,49 @@ class EventAdmin(ModelAdmin):
                 "opts": self.model._meta,
                 "title": f"Edit Event #{event_id}",
                 "form": form,
-                **self.admin_site.each_context(request),    
+                "current_image": event.get(
+                    "imagePath", ""
+                ),  # Pass current image to template
+                **self.admin_site.each_context(request),
             }
             return TemplateResponse(request, self.change_form_template, context)
 
-        # POST request — PATCH to update
         elif request.method == "POST":
-            form = EventForm(request.POST)
+            update_url = (
+                f"https://api-community-diamond-club.io/api/admin/event/{event_id}/"
+            )
+            form = EventForm(
+                request.POST, request.FILES
+            )  # Important: include request.FILES
             if form.is_valid():
                 try:
                     patch_data = {
                         "title": form.cleaned_data["title"],
                         "time": form.cleaned_data["time"],
                         "link": form.cleaned_data["link"],
-                        "isActive": form.cleaned_data["isActive"],
+                        "isActive": bool(form.cleaned_data["isActive"]),
                     }
-                    # Send PATCH request — assuming this endpoint works
-                    update_url = f"https://api-community-diamond-club.io/api/admin/event/{event_id}/"
-                    requests.patch(update_url, json=patch_data, headers=headers)
+                    files = {}
+                    # Handle file upload
+                    if "image" in request.FILES:
+                        image_file = request.FILES['image']
+                        files['image'] = (image_file.name, image_file, image_file.content_type)
+                        patch_data['isActive'] = 'true' if patch_data['isActive'] else 'false'
+                        # For file upload, you typically need to send as multipart form data
+                        response = requests.patch(
+                            update_url, data=patch_data,files=files, headers=headers
+                        )
+
+                        if response.status_code == 200:
+                            messages.success(request, "Event updated successfully!")
+                            return redirect("../../")
+                        else:
+                            error_msg = response.json().get('message', 'Update failed')
+                            print(patch_data["isActive"])
+                            raise Exception(error_msg)
+                    else:
+                        # If no new image, just send the data
+                        requests.patch(update_url, json=patch_data, headers=headers)
 
                     messages.success(request, "Event updated successfully.")
                     return redirect("../../")
@@ -97,6 +117,7 @@ class EventAdmin(ModelAdmin):
                 "opts": self.model._meta,
                 "title": f"Edit Event #{event_id}",
                 "form": form,
+                "current_image": event.get("imagePath", ""),
                 **self.admin_site.each_context(request),
             }
             return TemplateResponse(request, self.change_form_template, context)
@@ -117,9 +138,9 @@ class EventAdmin(ModelAdmin):
         for index, item in enumerate(data):
             event_id = item.get("_id")
             event_update_url = reverse("admin:edit_event", args=[event_id])
-            print(event_update_url)
             title = item.get("title")
             link = item.get("link")
+            image = item.get("imagePath", "")
             isActive = item.get("isActive")
             time = item.get("time")
             table_data.append(
@@ -127,6 +148,7 @@ class EventAdmin(ModelAdmin):
                     f'<a href="{event_update_url}">{index + 1}</a>',
                     title,
                     time,
+                    image,
                     link,
                     isActive,
                 ]
@@ -140,6 +162,7 @@ class EventAdmin(ModelAdmin):
                     "ID",
                     "Title",
                     "Time",
+                    "Image",
                     "Link",
                     "Is Active",
                 ],

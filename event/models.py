@@ -7,6 +7,7 @@ class Event(models.Model):
     tag = models.CharField(max_length=200)
     link = models.URLField()
     time = models.DateTimeField()
+    image = models.ImageField()
     is_active = models.BooleanField()
 
     class Meta:
