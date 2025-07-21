@@ -18,7 +18,7 @@ class EventForm(forms.Form):
     link = forms.URLField(required=False)
     image = forms.ImageField(required=False)
     isActive = forms.BooleanField(required=False)
-
+    isRequestRequired = forms.BooleanField(required=True)
 
 class EventAdmin(ModelAdmin):
     change_list_template = "admin/event_changelist.html"
@@ -38,7 +38,7 @@ class EventAdmin(ModelAdmin):
         return custom_urls + default_urls
 
     def edit_event_view(self, request, event_id):
-        list_api_url = "https://api-community-diamond-club.io/api/admin/events/"
+        list_api_url = "https://test.api-community-diamond-club.io/api/admin/events/"
         headers = {"AccessToken": "8b2be529-0afc-43a2-b8c7-27dfebcfeb81"}
 
         try:
@@ -73,7 +73,7 @@ class EventAdmin(ModelAdmin):
 
         elif request.method == "POST":
             update_url = (
-                f"https://api-community-diamond-club.io/api/admin/event/{event_id}/"
+                f"https://test.api-community-diamond-club.io/api/admin/event/{event_id}/"
             )
             form = EventForm(
                 request.POST, request.FILES
@@ -126,7 +126,7 @@ class EventAdmin(ModelAdmin):
         header = {"AccessToken": "8b2be529-0afc-43a2-b8c7-27dfebcfeb81"}
         try:
             response = requests.get(
-                "https://api-community-diamond-club.io/api/admin/events/",
+                "https://test.api-community-diamond-club.io/api/admin/events/",
                 headers=header,
             )
             data = response.json()["data"]["eventDetails"]
@@ -142,6 +142,7 @@ class EventAdmin(ModelAdmin):
             link = item.get("link")
             image = item.get("imagePath", "")
             isActive = item.get("isActive")
+            isRequestRequired = item.get("isRequestRequired")
             time = item.get("time")
             table_data.append(
                 [
@@ -151,6 +152,7 @@ class EventAdmin(ModelAdmin):
                     image,
                     link,
                     isActive,
+                    isRequestRequired
                 ]
             )
 
@@ -165,6 +167,7 @@ class EventAdmin(ModelAdmin):
                     "Image",
                     "Link",
                     "Is Active",
+                    "Is Request Required"
                 ],
                 "rows": table_data,
             },
