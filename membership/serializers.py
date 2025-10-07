@@ -10,6 +10,6 @@ class MembershipSerializer(ModelSerializer):
             "crypto_currency",
             "purchase_date",
             "receiver_address",
-            "tokens_delivered",
+            "membership_added",
         ]
         read_only_fields = ["id", "purchase_date"]

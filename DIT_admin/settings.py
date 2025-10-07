@@ -64,7 +64,8 @@ INSTALLED_APPS = [
     'presale',
     'event',
     'external_users',
-    'nft_reward'  
+    'nft_reward',
+    'membership'  
 ]
 
 MIDDLEWARE = [
