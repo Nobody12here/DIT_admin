@@ -11,7 +11,7 @@ class Membership(models.Model):
     membership_added = models.BooleanField(default=False)
     class Meta:
         db_table = 'diora_membership'
-        verbose_name = 'diora_membership'
-        verbose_name_plural = 'diora_memberships'
+        verbose_name = 'DIORA voucher'
+        verbose_name_plural = 'DIORA voucher'
     def __str__(self):
         return self.receiver_address
