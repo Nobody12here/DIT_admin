@@ -44,14 +44,12 @@ class ExternalUserAdmin(ModelAdmin):
             nft_details = item.get("membershipNftsWithCounts", {})
             
             wallet_address = wallet_details.get("walletAddress", "-") if isinstance(wallet_details, dict) else item.get("walletAddress", "-")
-            wallet_provider = wallet_details.get("walletProvider", "-").lower() if isinstance(wallet_details, dict) else "-"
             email = item.get("email", "-")
             email = email.lower() if email else "-"
             # Check filters
             if filters.get('email__icontains') and filters['email__icontains'] not in email:
                 continue
-            if filters.get('wallet_provider__icontains') and filters['wallet_provider__icontains'] not in wallet_provider:
-                continue
+           
                 
             filtered_data.append({
                 "id": index + 1,
@@ -59,7 +57,6 @@ class ExternalUserAdmin(ModelAdmin):
                 "email": email,
                 "wallet_address": wallet_address or "-",
                 "dit_token_balance": item.get("ditTokenBalance", "0"),
-                "wallet_provider": wallet_provider.capitalize(),
                 "flawless": nft_details.get("Flawless Diamonds", 0),
                 "red": nft_details.get("Red Diamonds", 0),
                 "blue": nft_details.get("Blue Diamonds", 0),

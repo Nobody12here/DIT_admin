@@ -8,7 +8,8 @@ class Membership(models.Model):
     quantity = models.PositiveIntegerField(blank=True ,null=True)
     purchase_date = models.DateTimeField(auto_now_add=True)
     receiver_address = models.CharField(max_length=255)
-    membership_added = models.BooleanField(default=False)
+    voucher_sent = models.BooleanField(default=False)
+    email_sent = models.BooleanField(default=False)
     class Meta:
         db_table = 'diora_membership'
         verbose_name = 'DIORA voucher'

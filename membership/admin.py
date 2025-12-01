@@ -13,14 +13,15 @@ class MembershipAdmin(ModelAdmin):
         "crypto_currency",
         "usdt_amount",
         "purchase_date",
-        "membership_added",
+        "voucher_sent",
+        "email_sent"
     )
 
     list_filter = (
         "crypto_currency",
-        "membership_added",
+        "voucher_sent",
         "purchase_date",
     )  # Optional filters on sidebar
     search_fields = ("receiver_address", "crypto_currency")  # Optional search bar
     ordering = ("-purchase_date",)  # Most recent purchases first
-    list_editable = ("membership_added",)
+    list_editable = ("voucher_sent","email_sent")
