@@ -65,7 +65,8 @@ INSTALLED_APPS = [
     'event',
     'external_users',
     'nft_reward',
-    'membership'  
+    'membership',
+    'donation'  
 ]
 
 MIDDLEWARE = [

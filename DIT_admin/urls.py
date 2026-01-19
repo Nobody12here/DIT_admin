@@ -37,8 +37,9 @@ schema_view = get_schema_view(
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/presale/", include("presale.urls")),
+    path("api/donation", include("donation.urls")),
     path("api/nft/", include("nft_reward.urls")),
     path("api/docs/", schema_view.with_ui("swagger"), name="drf_yasg"),
-    path("api/membership/",include("membership.urls")),
-    path ("api/external_users/",include("external_users.urls")),
+    path("api/membership/", include("membership.urls")),
+    path("api/external_users/", include("external_users.urls")),
 ]
