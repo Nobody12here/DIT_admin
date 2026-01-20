@@ -6,7 +6,7 @@ from django.db import models
 class Donation(models.Model):
     amount = models.DecimalField(max_digits=12, decimal_places=6)
     usdt_amount = models.DecimalField(max_digits=12, decimal_places=6)
-    receiver_address = models.CharField(max_length=40)
+    receiver_address = models.CharField(max_length=50)
     email_address = models.EmailField(null=True, blank=True)
     purchase_date = models.DateTimeField(auto_now_add=True)
 
