@@ -10,7 +10,7 @@ class MembershipAdmin(ModelAdmin):
     list_display = (
         "id",
         "receiver_address",
-        "amount",
+        "dit_amount",
         "usdt_amount",
         "purchase_date",
         "has_dragon",
@@ -23,6 +23,6 @@ class MembershipAdmin(ModelAdmin):
         "dragon_delivered",
         "purchase_date",
     )  # Optional filters on sidebar
-    search_fields = ("receiver_address", "amount", "usdt_amount")  # Optional search bar
+    search_fields = ("receiver_address", "dit_amount", "usdt_amount")  # Optional search bar
     ordering = ("-purchase_date",)  # Most recent purchases first
     list_editable = ("has_dragon", "dragon_delivered", "usdt_amount")

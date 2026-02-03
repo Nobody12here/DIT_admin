@@ -1,7 +1,8 @@
 from django.urls import path
-from .views import DonationAPIView, DonationDetailAPIView
+from .views import DonationAPIView, DonationDetailAPIView, TotalDonationAPIView
 
 urlpatterns = [
     path("", DonationAPIView.as_view(), name="donation-list"),
-    path("<int:pk>/", DonationDetailAPIView.as_view(), name="donation-detail"),
+    path("total/", TotalDonationAPIView.as_view(), name="donation-total"),
+    path("<str:receiver_address>/", DonationDetailAPIView.as_view(), name="donation-detail"),
 ]
