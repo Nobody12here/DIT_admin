@@ -8,6 +8,8 @@ import requests
 
 
 class ExternalUserAPIView(APIView):
+    swagger_schema = None
+
     def get(self, request):
         try:
             header = {"AccessToken": "8b2be529-0afc-43a2-b8c7-27dfebcfeb81"}

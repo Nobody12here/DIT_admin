@@ -6,8 +6,10 @@ from drf_yasg.utils import swagger_auto_schema
 # Create your views here.
 
 class PresaleAPIView(APIView):
-    @swagger_auto_schema(request_body=PresaleSerializer,
-                         responses={201: PresaleSerializer} )
+    swagger_schema = None
+
+    # @swagger_auto_schema(request_body=PresaleSerializer,
+    #                      responses={201: PresaleSerializer} )
     def post(self,request):
         serializer = PresaleSerializer(data=request.data)
         if serializer.is_valid():

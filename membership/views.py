@@ -8,9 +8,11 @@ from drf_yasg.utils import swagger_auto_schema
 
 
 class MembershipAPIView(APIView):
-    @swagger_auto_schema(
-        request_body=MembershipSerializer, responses={201: MembershipSerializer}
-    )
+    swagger_schema = None
+
+    # @swagger_auto_schema(
+    #     request_body=MembershipSerializer, responses={201: MembershipSerializer}
+    # )
     def post(self, request):
         serializer = MembershipSerializer(data=request.data)
         if serializer.is_valid():

@@ -5,9 +5,11 @@ from nft_reward.serializers import NFTRewardSerializer
 from drf_yasg.utils import swagger_auto_schema
 
 class NFTRewardAPIView(APIView):
-    @swagger_auto_schema(
-        request_body=NFTRewardSerializer, responses={201: NFTRewardSerializer}
-    )
+    swagger_schema = None
+
+    # @swagger_auto_schema(
+    #     request_body=NFTRewardSerializer, responses={201: NFTRewardSerializer}
+    # )
     def post(self, request):
         serializer = NFTRewardSerializer(data=request.data)
         if serializer.is_valid():
