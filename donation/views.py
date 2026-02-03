@@ -60,7 +60,7 @@ class TotalDonationAPIView(APIView):
     def get(self, request):
         """Get total donation amounts across all users"""
         totals = Donation.objects.aggregate(
-            total_amount=Sum('amount'),
+            total_amount=Sum('dit_amount'),
             total_usdt_amount=Sum('usdt_amount')
         )
         total_donations = Donation.objects.count()
