@@ -140,28 +140,28 @@ class TotalDonationAPIView(APIView):
         
         # Get current period totals
         current_totals = Donation.objects.filter(
-            created_at__gte=start_date,
-            created_at__lte=end_date
+            donated_at__gte=start_date,
+            donated_at__lte=end_date
         ).aggregate(
             total_amount=Sum('dit_amount'),
             total_usdt_amount=Sum('usdt_amount')
         )
         current_donations_count = Donation.objects.filter(
-            created_at__gte=start_date,
-            created_at__lte=end_date
+            donated_at__gte=start_date,
+            donated_at__lte=end_date
         ).count()
         
         # Get previous period totals
         prev_totals = Donation.objects.filter(
-            created_at__gte=prev_start_date,
-            created_at__lt=prev_end_date
+            donated_at__gte=prev_start_date,
+            donated_at__lt=prev_end_date
         ).aggregate(
             total_amount=Sum('dit_amount'),
             total_usdt_amount=Sum('usdt_amount')
         )
         prev_donations_count = Donation.objects.filter(
-            created_at__gte=prev_start_date,
-            created_at__lt=prev_end_date
+            donated_at__gte=prev_start_date,
+            donated_at__lt=prev_end_date
         ).count()
         
         # Calculate percentage changes

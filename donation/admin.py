@@ -12,7 +12,7 @@ class MembershipAdmin(ModelAdmin):
         "receiver_address",
         "dit_amount",
         "usdt_amount",
-        "purchase_date",
+        "donated_at",
         "has_dragon",
         "dragon_delivered",
     )
@@ -21,8 +21,8 @@ class MembershipAdmin(ModelAdmin):
         "receiver_address",
         "has_dragon",
         "dragon_delivered",
-        "purchase_date",
+        "donated_at",
     )  # Optional filters on sidebar
     search_fields = ("receiver_address", "dit_amount", "usdt_amount")  # Optional search bar
-    ordering = ("-purchase_date",)  # Most recent purchases first
+    ordering = ("-donated_at",)  # Most recent purchases first
     list_editable = ("has_dragon", "dragon_delivered", "usdt_amount")

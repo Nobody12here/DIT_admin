@@ -8,7 +8,7 @@ class Donation(models.Model):
     usdt_amount = models.DecimalField(max_digits=12, decimal_places=6)
     receiver_address = models.CharField(max_length=50)
     email_address = models.EmailField(null=True, blank=True)
-    purchase_date = models.DateTimeField(auto_now_add=True)
+    donated_at = models.DateTimeField(auto_now_add=True)
 
     has_dragon = models.BooleanField(default=False)
     dragon_delivered = models.BooleanField(default=False)
