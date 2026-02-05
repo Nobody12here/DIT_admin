@@ -28,7 +28,7 @@ UNFOLD = {
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_ROOT = os.path.join(BASE_DIR, "static/")
-CORS_ALLOW_ALL_ORIGINS = [
+CORS_ALLOWED_ORIGINS  = [
     "38.242.137.199",
     "localhost",
     "127.0.0.1",
