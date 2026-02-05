@@ -44,6 +44,7 @@ CORS_ALLOW_ALL_ORIGINS = [
     "https://dragon-store.vercel.app/",
     "https://dragon.diora.social/",
     "https://dragon-donation-d6x9.vercel.app/",
+    "https://9d74473db0d5.ngrok-free.app/admin/dashboard"
 ]
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
