@@ -28,7 +28,23 @@ UNFOLD = {
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_ROOT = os.path.join(BASE_DIR, "static/")
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = [
+    "38.242.137.199",
+    "localhost",
+    "127.0.0.1",
+    "http://localhost:5173/",
+    "https://dit-presale.vercel.app/",
+    "ditadmin.duckdns.org",
+    "https://test-admin.diamond-club.io",
+    "http://localhost:5432",
+    "https://test-community.diamond-club.io",
+    "http://localhost:1234",
+    "https://www.diamondmembership.io/",
+    "https://prepaidcard.diora.social/",
+    "https://dragon-store.vercel.app/",
+    "https://dragon.diora.social/",
+    "https://dragon-donation-d6x9.vercel.app/",
+]
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
