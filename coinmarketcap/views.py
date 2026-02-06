@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from django.http import HttpResponse
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from .serializers import TokenSupplySerializer
@@ -136,12 +137,12 @@ class TotalSupplyAPIView(APIView):
         operation_description="Get total supply of DIT tokens (100 million)",
         responses={200: openapi.Response(
             description="Total supply",
-            examples={"application/json": "100000000"}
+            examples={"text/plain": "100000000"}
         )}
     )
     def get(self, request):
         """Return total supply as a plain number"""
-        return Response(str(TOTAL_SUPPLY), status=status.HTTP_200_OK)
+        return HttpResponse(str(TOTAL_SUPPLY), content_type='text/plain')
 
 
 class CirculatingSupplyAPIView(APIView):
@@ -155,7 +156,7 @@ class CirculatingSupplyAPIView(APIView):
         responses={
             200: openapi.Response(
                 description="Circulating supply",
-                examples={"application/json": "85000000.50"}
+                examples={"text/plain": "85000000.50"}
             ),
             500: "Internal Server Error"
         }
@@ -168,9 +169,10 @@ class CirculatingSupplyAPIView(APIView):
             
             if not w3.is_connected():
                 logger.error("Failed to connect to BSC network")
-                return Response(
-                    {"error": "Failed to connect to blockchain network"},
-                    status=status.HTTP_503_SERVICE_UNAVAILABLE
+                return HttpResponse(
+                    "Service Unavailable",
+                    content_type='text/plain',
+                    status=503
                 )
             
             # Create contract instance
@@ -206,11 +208,12 @@ class CirculatingSupplyAPIView(APIView):
             if circulating_supply < 0:
                 circulating_supply = Decimal('0')
             
-            return Response(str(circulating_supply), status=status.HTTP_200_OK)
+            return HttpResponse(str(circulating_supply), content_type='text/plain')
             
         except Exception as e:
             logger.error(f"Error in CirculatingSupplyAPIView: {str(e)}")
-            return Response(
-                {"error": f"Failed to fetch circulating supply: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            return HttpResponse(
+                "Internal Server Error",
+                content_type='text/plain',
+                status=500
             )
