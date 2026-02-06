@@ -1,11 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
 from .serializers import DonationSerializer
 from .models import Donation
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
@@ -13,15 +14,42 @@ from decimal import Decimal
 # Create your views here.
 
 
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
 class DonationAPIView(APIView):
+    pagination_class = StandardResultsSetPagination
+    
     @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter('wallet_address', openapi.IN_QUERY, description="Search by wallet address", type=openapi.TYPE_STRING),
+            openapi.Parameter('email', openapi.IN_QUERY, description="Search by email address", type=openapi.TYPE_STRING),
+            openapi.Parameter('page', openapi.IN_QUERY, description="Page number", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('page_size', openapi.IN_QUERY, description="Number of results per page (max 100)", type=openapi.TYPE_INTEGER),
+        ],
         responses={200: DonationSerializer(many=True)}
     )
     def get(self, request):
-        """Get list of all donations"""
-        donations = Donation.objects.all()
-        serializer = DonationSerializer(donations, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        """Get list of all donations with pagination and search"""
+        donations = Donation.objects.all().order_by('-donated_at')
+        
+        # Search filtering
+        wallet_address = request.query_params.get('wallet_address', None)
+        email = request.query_params.get('email', None)
+        
+        if wallet_address:
+            donations = donations.filter(receiver_address__icontains=wallet_address)
+        if email:
+            donations = donations.filter(email_address__icontains=email)
+        
+        # Pagination
+        paginator = self.pagination_class()
+        paginated_donations = paginator.paginate_queryset(donations, request)
+        serializer = DonationSerializer(paginated_donations, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
     @swagger_auto_schema(
         request_body=DonationSerializer, responses={201: DonationSerializer}
@@ -36,15 +64,32 @@ class DonationAPIView(APIView):
 
 class DonationDetailAPIView(APIView):
     @swagger_auto_schema(
-        responses={200: DonationSerializer(many=True), 404: "Not Found"}
+        responses={200: openapi.Response(
+            description="Donations for a specific wallet address with total DIT contributed",
+            examples={
+                "application/json": {
+                    "total_dit_contributed": "5000.500000",
+                    "total_donations_count": 15,
+                    "donations": []
+                }
+            }
+        ), 404: "Not Found"}
     )
     def get(self, request, receiver_address):
-        """Get all donations for a specific wallet address"""
-        donations = Donation.objects.filter(receiver_address=receiver_address)
+        """Get all donations for a specific wallet address with total DIT contributed"""
+        donations = Donation.objects.filter(receiver_address=receiver_address).order_by('-donated_at')
         if not donations.exists():
             return Response({"error": "No donations found for this address"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Calculate total DIT contributed
+        total_dit = donations.aggregate(total=Sum('dit_amount'))['total'] or Decimal('0')
+        
         serializer = DonationSerializer(donations, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response({
+            "total_dit_contributed": total_dit,
+            "total_donations_count": donations.count(),
+            "donations": serializer.data
+        }, status=status.HTTP_200_OK)
 
 
 class TotalDonationAPIView(APIView):
