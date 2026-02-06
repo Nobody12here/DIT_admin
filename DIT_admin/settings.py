@@ -31,7 +31,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, "static/")
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
-    "http://localhost:5432"
+    "http://localhost:5432",
     "https://dit-presale.vercel.app",
     "https://ditadmin.duckdns.org",
     "https://test-admin.diamond-club.io",
@@ -92,6 +92,7 @@ INSTALLED_APPS = [
     "nft_reward",
     "membership",
     "donation",
+    "coinmarketcap",
 ]
 
 MIDDLEWARE = [

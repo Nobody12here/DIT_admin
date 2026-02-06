@@ -42,4 +42,5 @@ urlpatterns = [
     path("api/docs/", schema_view.with_ui("swagger"), name="drf_yasg"),
     path("api/membership/", include("membership.urls")),
     path("api/external_users/", include("external_users.urls")),
+    path("api/cmc/", include("coinmarketcap.urls")),
 ]

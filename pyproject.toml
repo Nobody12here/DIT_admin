@@ -21,4 +21,5 @@ dependencies = [
     "sqlparse==0.5.3",
     "tzdata==2025.2",
     "uritemplate==4.1.1",
+    "web3>=7.14.1",
 ]
