@@ -43,4 +43,5 @@ urlpatterns = [
     path("api/membership/", include("membership.urls")),
     path("api/external_users/", include("external_users.urls")),
     path("api/cmc/", include("coinmarketcap.urls")),
+    path("api/diora-rewards/", include("diora_reward.urls")),
 ]

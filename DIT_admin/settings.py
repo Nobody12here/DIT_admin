@@ -93,6 +93,7 @@ INSTALLED_APPS = [
     "membership",
     "donation",
     "coinmarketcap",
+    "diora_reward",
 ]
 
 MIDDLEWARE = [
@@ -181,3 +182,9 @@ STATIC_ROOT = "/home/root/DIT_admin/static"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# Blockchain Configuration for DIT Rewards
+# Set these in environment variables or .env file
+BLOCKCHAIN_RPC_URL = os.getenv('BLOCKCHAIN_RPC_URL', 'https://ethereum-sepolia.wallet.brave.com/')
+DIT_REWARDS_CONTRACT_ADDRESS = os.getenv('DIT_REWARDS_CONTRACT_ADDRESS', '0xc62831c476F6c36D42299b3C6BAa519198302D4b')
