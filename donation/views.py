@@ -25,8 +25,7 @@ class DonationAPIView(APIView):
     
     @swagger_auto_schema(
         manual_parameters=[
-            openapi.Parameter('wallet_address', openapi.IN_QUERY, description="Search by wallet address", type=openapi.TYPE_STRING),
-            openapi.Parameter('email', openapi.IN_QUERY, description="Search by email address", type=openapi.TYPE_STRING),
+            openapi.Parameter('search', openapi.IN_QUERY, description="Search by wallet address or email address", type=openapi.TYPE_STRING),
             openapi.Parameter('page', openapi.IN_QUERY, description="Page number", type=openapi.TYPE_INTEGER),
             openapi.Parameter('page_size', openapi.IN_QUERY, description="Number of results per page (max 100)", type=openapi.TYPE_INTEGER),
         ],
@@ -37,13 +36,12 @@ class DonationAPIView(APIView):
         donations = Donation.objects.all().order_by('-donated_at')
         
         # Search filtering
-        wallet_address = request.query_params.get('wallet_address', None)
-        email = request.query_params.get('email', None)
+        search = request.query_params.get('search', None)
         
-        if wallet_address:
-            donations = donations.filter(receiver_address__icontains=wallet_address)
-        if email:
-            donations = donations.filter(email_address__icontains=email)
+        if search:
+            donations = donations.filter(
+                Q(receiver_address__icontains=search) | Q(email_address__icontains=search)
+            )
         
         # Pagination
         paginator = self.pagination_class()
