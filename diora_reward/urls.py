@@ -5,12 +5,18 @@ from .views import (
     UserRewardClaimDetailAPIView,
     TotalRewardsAPIView,
     NFTTypeRewardsAPIView,
-    AllNFTTypesRewardsAPIView
+    AllNFTTypesRewardsAPIView,
+    BulkRewardDistributionAPIView,
+    PendingRewardAPIView
 )
 
 urlpatterns = [
     # Reward Distributions
     path('distributions/', RewardDistributionAPIView.as_view(), name='reward-distributions'),
+    path('distributions/bulk/', BulkRewardDistributionAPIView.as_view(), name='bulk-reward-distribution'),
+    
+    # Pending Rewards
+    path('pending/', PendingRewardAPIView.as_view(), name='pending-rewards'),
     
     # User Claims
     path('claims/', UserRewardClaimAPIView.as_view(), name='user-claims'),

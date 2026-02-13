@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import RewardDistribution, UserRewardClaim
+from django.utils import timezone
+from .models import RewardDistribution, UserRewardClaim, PendingReward
 
 
 @admin.register(RewardDistribution)
@@ -55,3 +56,36 @@ class UserRewardClaimAdmin(admin.ModelAdmin):
     def transaction_hash_short(self, obj):
         return f"{obj.transaction_hash[:10]}...{obj.transaction_hash[-8:]}"
     transaction_hash_short.short_description = 'Transaction'
+
+
+@admin.register(PendingReward)
+class PendingRewardAdmin(admin.ModelAdmin):
+    list_display = [
+        'wallet_address_short',
+        'nft_type',
+        'dit_amount',
+        'is_sent',
+        'sent_at',
+        'created_at'
+    ]
+    list_filter = ['nft_type', 'is_sent', 'created_at']
+    search_fields = ['wallet_address']
+    readonly_fields = ['created_at', 'updated_at']
+    list_editable = ['is_sent']
+    date_hierarchy = 'created_at'
+    ordering = ['-created_at']
+    actions = ['mark_as_sent', 'mark_as_pending']
+
+    def wallet_address_short(self, obj):
+        return f"{obj.wallet_address[:10]}...{obj.wallet_address[-8:]}"
+    wallet_address_short.short_description = 'Wallet'
+
+    def mark_as_sent(self, request, queryset):
+        updated = queryset.update(is_sent=True, sent_at=timezone.now())
+        self.message_user(request, f"{updated} pending rewards marked as sent.")
+    mark_as_sent.short_description = "Mark selected rewards as sent"
+
+    def mark_as_pending(self, request, queryset):
+        updated = queryset.update(is_sent=False, sent_at=None)
+        self.message_user(request, f"{updated} rewards marked as pending.")
+    mark_as_pending.short_description = "Mark selected rewards as pending"

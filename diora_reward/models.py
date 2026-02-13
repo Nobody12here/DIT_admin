@@ -112,3 +112,56 @@ class UserRewardClaim(models.Model):
 
     def __str__(self):
         return f"{self.wallet_address[:10]}... - {self.amount} DIT - {self.claimed_at.strftime('%Y-%m-%d')}"
+
+
+class PendingReward(models.Model):
+    """
+    Tracks pending rewards for eligible wallets (similar to smart contract's pendingRewards mapping)
+    Created when rewards are distributed via admin, waiting to be claimed or sent on-chain
+    """
+    wallet_address = models.CharField(
+        max_length=42,
+        db_index=True,
+        help_text="User's wallet address"
+    )
+    nft_type = models.CharField(
+        max_length=20,
+        choices=NFTType.choices,
+        db_index=True
+    )
+    dit_amount = models.DecimalField(
+        max_digits=20,
+        decimal_places=6,
+        help_text="Pending DIT amount for this wallet"
+    )
+    distribution = models.ForeignKey(
+        RewardDistribution,
+        on_delete=models.CASCADE,
+        related_name='pending_rewards',
+        help_text="Related reward distribution batch"
+    )
+    is_sent = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Whether reward has been sent to blockchain"
+    )
+    sent_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp when reward was sent to blockchain"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Pending Reward'
+        verbose_name_plural = 'Pending Rewards'
+        indexes = [
+            models.Index(fields=['wallet_address', 'is_sent']),
+            models.Index(fields=['nft_type', '-created_at']),
+        ]
+
+    def __str__(self):
+        status = "Sent" if self.is_sent else "Pending"
+        return f"{self.wallet_address[:10]}... - {self.dit_amount} DIT - {self.nft_type} - {status}"

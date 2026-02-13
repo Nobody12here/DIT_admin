@@ -2,14 +2,20 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
-from .serializers import RewardDistributionSerializer, UserRewardClaimSerializer
-from .models import RewardDistribution, UserRewardClaim, NFTType
+from .serializers import (
+    RewardDistributionSerializer, 
+    UserRewardClaimSerializer,
+    BulkRewardDistributionSerializer,
+    PendingRewardSerializer
+)
+from .models import RewardDistribution, UserRewardClaim, NFTType, PendingReward
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.db.models import Sum, Q
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
+from django.db import transaction as db_transaction
 
 
 class StandardResultsSetPagination(PageNumberPagination):
@@ -96,6 +102,191 @@ class UserRewardClaimAPIView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class BulkRewardDistributionAPIView(APIView):
+    """
+    API endpoint for bulk reward distribution similar to smart contract's distributeAllRewards function.
+    Distributes rewards to multiple NFT types with their eligible wallets and amounts.
+    """
+
+    @swagger_auto_schema(
+        request_body=BulkRewardDistributionSerializer,
+        responses={
+            201: openapi.Response(
+                description="Rewards successfully distributed",
+                examples={
+                    "application/json": {
+                        "message": "Successfully distributed rewards",
+                        "total_distributions": 3,
+                        "total_wallets": 125,
+                        "total_dit_distributed": "50000.000000",
+                        "distributions": [
+                            {
+                                "distribution_id": 1,
+                                "nft_type": "RED",
+                                "total_dit_amount": "10000.000000",
+                                "per_wallet_amount": "100.000000",
+                                "wallet_count": 100,
+                                "pending_rewards_created": 100
+                            }
+                        ]
+                    }
+                }
+            ),
+            400: "Bad Request - Validation errors"
+        }
+    )
+    def post(self, request):
+        """
+        Distribute rewards to multiple NFT types and their eligible wallets.
+        
+        Expected payload:
+        {
+            "distributions": [
+                {
+                    "nft_type": "RED",
+                    "eligible_wallets": ["0x123...", "0x456..."],
+                    "total_dit_amount": "10000.000000"
+                },
+                {
+                    "nft_type": "GREEN",
+                    "eligible_wallets": ["0x789...", "0xabc..."],
+                    "total_dit_amount": "20000.000000"
+                }
+            ],
+            "transaction_hash": "0xabc123..." (optional),
+            "block_number": 12345678 (optional)
+        }
+        
+        This creates:
+        1. RewardDistribution records tracking each NFT type distribution
+        2. PendingReward records for each wallet, similar to smart contract's pendingRewards mapping
+        """
+        serializer = BulkRewardDistributionSerializer(data=request.data)
+        
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        distributions_data = serializer.validated_data['distributions']
+        transaction_hash = serializer.validated_data.get('transaction_hash', '')
+        block_number = serializer.validated_data.get('block_number', 0)
+        
+        distribution_results = []
+        total_wallets = 0
+        total_dit = Decimal('0')
+        
+        try:
+            with db_transaction.atomic():
+                for dist_data in distributions_data:
+                    nft_type = dist_data['nft_type']
+                    eligible_wallets = dist_data['eligible_wallets']
+                    total_dit_amount = dist_data['total_dit_amount']
+                    
+                    # Calculate per wallet amount
+                    wallet_count = len(eligible_wallets)
+                    per_wallet_amount = total_dit_amount / wallet_count
+                    
+                    if per_wallet_amount <= 0:
+                        raise ValueError(f"Amount too small for {nft_type}: {per_wallet_amount}")
+                    
+                    # Create RewardDistribution record
+                    reward_distribution = RewardDistribution.objects.create(
+                        nft_type=nft_type,
+                        total_amount=total_dit_amount,
+                        per_wallet_amount=per_wallet_amount,
+                        wallet_count=wallet_count,
+                        transaction_hash=transaction_hash or '',
+                        log_index=0,
+                        block_number=block_number or 0,
+                        distributed_at=timezone.now()
+                    )
+                    
+                    # Create PendingReward entries for each wallet
+                    pending_rewards = []
+                    for wallet in eligible_wallets:
+                        # Remove duplicates - check if wallet already exists
+                        wallet = wallet.strip().lower()
+                        if wallet.startswith('0x') and len(wallet) == 42:
+                            pending_rewards.append(
+                                PendingReward(
+                                    wallet_address=wallet,
+                                    nft_type=nft_type,
+                                    dit_amount=per_wallet_amount,
+                                    distribution=reward_distribution,
+                                    is_sent=False
+                                )
+                            )
+                    
+                    # Bulk create pending rewards
+                    created_pending_rewards = PendingReward.objects.bulk_create(pending_rewards)
+                    
+                    distribution_results.append({
+                        "distribution_id": reward_distribution.id,
+                        "nft_type": nft_type,
+                        "total_dit_amount": str(total_dit_amount),
+                        "per_wallet_amount": str(per_wallet_amount),
+                        "wallet_count": wallet_count,
+                        "pending_rewards_created": len(created_pending_rewards)
+                    })
+                    
+                    total_wallets += wallet_count
+                    total_dit += total_dit_amount
+            
+            return Response({
+                "message": "Successfully distributed rewards",
+                "total_distributions": len(distributions_data),
+                "total_wallets": total_wallets,
+                "total_dit_distributed": str(total_dit),
+                "distributions": distribution_results
+            }, status=status.HTTP_201_CREATED)
+            
+        except ValueError as e:
+            return Response({
+                "error": str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({
+                "error": f"Failed to distribute rewards: {str(e)}"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class PendingRewardAPIView(APIView):
+    """List pending rewards with pagination and filtering"""
+    pagination_class = StandardResultsSetPagination
+    
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter('wallet_address', openapi.IN_QUERY, description="Filter by wallet address", type=openapi.TYPE_STRING),
+            openapi.Parameter('nft_type', openapi.IN_QUERY, description="Filter by NFT type", type=openapi.TYPE_STRING),
+            openapi.Parameter('is_sent', openapi.IN_QUERY, description="Filter by sent status (true/false)", type=openapi.TYPE_BOOLEAN),
+            openapi.Parameter('page', openapi.IN_QUERY, description="Page number", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('page_size', openapi.IN_QUERY, description="Number of results per page (max 100)", type=openapi.TYPE_INTEGER),
+        ],
+        responses={200: PendingRewardSerializer(many=True)}
+    )
+    def get(self, request):
+        """Get list of all pending rewards with pagination and filtering"""
+        pending_rewards = PendingReward.objects.all().order_by('-created_at')
+        
+        # Filters
+        wallet_address = request.query_params.get('wallet_address', None)
+        nft_type = request.query_params.get('nft_type', None)
+        is_sent = request.query_params.get('is_sent', None)
+        
+        if wallet_address:
+            pending_rewards = pending_rewards.filter(wallet_address__icontains=wallet_address)
+        if nft_type:
+            pending_rewards = pending_rewards.filter(nft_type=nft_type.upper())
+        if is_sent is not None:
+            is_sent_bool = is_sent.lower() == 'true'
+            pending_rewards = pending_rewards.filter(is_sent=is_sent_bool)
+        
+        # Pagination
+        paginator = self.pagination_class()
+        paginated_rewards = paginator.paginate_queryset(pending_rewards, request)
+        serializer = PendingRewardSerializer(paginated_rewards, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
 
 class UserRewardClaimDetailAPIView(APIView):
