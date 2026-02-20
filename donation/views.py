@@ -64,7 +64,23 @@ class DonationAPIView(APIView):
         paginator = self.pagination_class()
         paginated_donations = paginator.paginate_queryset(donations, request)
         serializer = DonationSerializer(paginated_donations, many=True)
-        return paginator.get_paginated_response(serializer.data)
+        
+        # Get dragon rewards for each address
+        receiver_addresses = [d.receiver_address for d in paginated_donations]
+        dragon_rewards = PendingReward.objects.filter(
+            wallet_address__in=receiver_addresses,
+            nft_type=NFTType.DRAGON
+        ).values('wallet_address').annotate(total_rewards=Sum('dit_amount'))
+        
+        # Create a mapping of address -> total dragon rewards
+        dragon_rewards_map = {item['wallet_address']: item['total_rewards'] for item in dragon_rewards}
+        
+        # Add dragon rewards to each donation
+        response_data = serializer.data
+        for donation in response_data:
+            donation['dragon_rewards_amount'] = dragon_rewards_map.get(donation['receiver_address'], 0)
+        
+        return paginator.get_paginated_response(response_data)
 
     @swagger_auto_schema(
         request_body=DonationSerializer, responses={201: DonationSerializer}
@@ -111,13 +127,13 @@ class DonationDetailAPIView(APIView):
         )
         dragon_reward = PendingReward.objects.filter(
             wallet_address=receiver_address, nft_type=NFTType.DRAGON
-        )
+        ).aggregate(total_rewards=Sum('dit_amount'))['total_rewards'] or Decimal("0")
         serializer = DonationSerializer(donations, many=True)
         return Response(
             {
                 "total_dit_contributed": total_dit,
                 "total_donations_count": donations.count(),
-                "total_dragon_rewards": dragon_reward if dragon_reward else 0,
+                "total_dragon_rewards": dragon_reward,
                 "donations": serializer.data,
             },
             status=status.HTTP_200_OK,
@@ -163,16 +179,19 @@ class TotalDonationAPIView(APIView):
                             "total_amount": "1000.500000",
                             "total_usdt_amount": "1000.000000",
                             "total_donations": 10,
+                            "total_dragon_rewards": "500.250000",
                         },
                         "previous_period": {
                             "total_amount": "800.000000",
                             "total_usdt_amount": "800.000000",
                             "total_donations": 8,
+                            "total_dragon_rewards": "400.000000",
                         },
                         "percentage_change": {
                             "total_amount": 25.06,
                             "total_usdt_amount": 25.00,
                             "total_donations": 25.00,
+                            "total_dragon_rewards": 25.06,
                         },
                     }
                 },
@@ -236,12 +255,18 @@ class TotalDonationAPIView(APIView):
                 total_amount=Sum("dit_amount"), total_usdt_amount=Sum("usdt_amount")
             )
             total_donations = Donation.objects.count()
+            
+            # Get total dragon rewards
+            dragon_rewards_total = PendingReward.objects.filter(
+                nft_type=NFTType.DRAGON
+            ).aggregate(total_rewards=Sum('dit_amount'))['total_rewards'] or Decimal("0")
 
             return Response(
                 {
                     "total_amount": totals["total_amount"] or 0,
                     "total_usdt_amount": totals["total_usdt_amount"] or 0,
                     "total_donations": total_donations,
+                    "total_dragon_rewards": dragon_rewards_total,
                 },
                 status=status.HTTP_200_OK,
             )
@@ -255,6 +280,13 @@ class TotalDonationAPIView(APIView):
         current_donations_count = Donation.objects.filter(
             donated_at__gte=start_date, donated_at__lte=end_date
         ).count()
+        
+        # Get current period dragon rewards
+        current_dragon_rewards = PendingReward.objects.filter(
+            nft_type=NFTType.DRAGON,
+            created_at__gte=start_date,
+            created_at__lte=end_date
+        ).aggregate(total_rewards=Sum('dit_amount'))['total_rewards'] or Decimal("0")
 
         # Get previous period totals
         prev_totals = Donation.objects.filter(
@@ -265,6 +297,13 @@ class TotalDonationAPIView(APIView):
         prev_donations_count = Donation.objects.filter(
             donated_at__gte=prev_start_date, donated_at__lt=prev_end_date
         ).count()
+        
+        # Get previous period dragon rewards
+        prev_dragon_rewards = PendingReward.objects.filter(
+            nft_type=NFTType.DRAGON,
+            created_at__gte=prev_start_date,
+            created_at__lt=prev_end_date
+        ).aggregate(total_rewards=Sum('dit_amount'))['total_rewards'] or Decimal("0")
 
         # Calculate percentage changes
         def calculate_percentage_change(current, previous):
@@ -290,11 +329,13 @@ class TotalDonationAPIView(APIView):
                     "total_amount": current_amount,
                     "total_usdt_amount": current_usdt,
                     "total_donations": current_donations_count,
+                    "total_dragon_rewards": current_dragon_rewards,
                 },
                 "previous_period": {
                     "total_amount": prev_amount,
                     "total_usdt_amount": prev_usdt,
                     "total_donations": prev_donations_count,
+                    "total_dragon_rewards": prev_dragon_rewards,
                 },
                 "percentage_change": {
                     "total_amount": calculate_percentage_change(
@@ -305,6 +346,9 @@ class TotalDonationAPIView(APIView):
                     ),
                     "total_donations": calculate_percentage_change(
                         current_donations_count, prev_donations_count
+                    ),
+                    "total_dragon_rewards": calculate_percentage_change(
+                        current_dragon_rewards, prev_dragon_rewards
                     ),
                 },
             },
