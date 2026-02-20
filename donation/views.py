@@ -95,15 +95,55 @@ class DonationAPIView(APIView):
 
 class DonationDetailAPIView(APIView):
     @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                "period",
+                openapi.IN_QUERY,
+                description="Time period filter: 'week', 'month', 'year', or 'custom'",
+                type=openapi.TYPE_STRING,
+                required=False,
+            ),
+            openapi.Parameter(
+                "start_date",
+                openapi.IN_QUERY,
+                description="Start date for custom period (YYYY-MM-DD)",
+                type=openapi.TYPE_STRING,
+                format=openapi.FORMAT_DATE,
+                required=False,
+            ),
+            openapi.Parameter(
+                "end_date",
+                openapi.IN_QUERY,
+                description="End date for custom period (YYYY-MM-DD)",
+                type=openapi.TYPE_STRING,
+                format=openapi.FORMAT_DATE,
+                required=False,
+            ),
+        ],
         responses={
             200: openapi.Response(
                 description="Donations and Rewards for a specific wallet address with total DIT contributed",
                 examples={
                     "application/json": {
-                        "total_dit_contributed": "5000.500000",
-                        "total_donations_count": 15,
-                        "total_dragon_rewards": 12,
-                        "donations": [],
+                        "period": "week",
+                        "start_date": "2026-01-28",
+                        "end_date": "2026-02-04",
+                        "current_period": {
+                            "total_dit_contributed": "5000.500000",
+                            "total_donations_count": 15,
+                            "total_dragon_rewards": "250.000000",
+                            "donations": [],
+                        },
+                        "previous_period": {
+                            "total_dit_contributed": "4000.000000",
+                            "total_donations_count": 10,
+                            "total_dragon_rewards": "200.000000",
+                        },
+                        "percentage_change": {
+                            "total_dit_contributed": 25.01,
+                            "total_donations_count": 50.00,
+                            "total_dragon_rewards": 25.00,
+                        },
                     }
                 },
             ),
@@ -111,30 +151,155 @@ class DonationDetailAPIView(APIView):
         }
     )
     def get(self, request, receiver_address):
-        """Get all donations for a specific wallet address with total DIT contributed"""
-        donations = Donation.objects.filter(receiver_address=receiver_address).order_by(
-            "-donated_at"
-        )
-        if not donations.exists():
+        """Get all donations for a specific wallet address with total DIT contributed and time-based filtering"""
+        period = request.query_params.get("period", None)
+        start_date_str = request.query_params.get("start_date", None)
+        end_date_str = request.query_params.get("end_date", None)
+
+        now = timezone.now()
+
+        # Determine date range based on period
+        if period == "week":
+            end_date = now
+            start_date = now - timedelta(days=7)
+            prev_start_date = start_date - timedelta(days=7)
+            prev_end_date = start_date
+        elif period == "month":
+            end_date = now
+            start_date = now - timedelta(days=30)
+            prev_start_date = start_date - timedelta(days=30)
+            prev_end_date = start_date
+        elif period == "year":
+            end_date = now
+            start_date = now - timedelta(days=365)
+            prev_start_date = start_date - timedelta(days=365)
+            prev_end_date = start_date
+        elif period == "custom":
+            if not start_date_str or not end_date_str:
+                return Response(
+                    {"error": "start_date and end_date are required for custom period"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            try:
+                from datetime import datetime
+
+                start_date = timezone.make_aware(
+                    datetime.strptime(start_date_str, "%Y-%m-%d")
+                )
+                end_date = timezone.make_aware(
+                    datetime.strptime(end_date_str, "%Y-%m-%d")
+                )
+                end_date = end_date.replace(hour=23, minute=59, second=59)
+
+                # Calculate previous period with same duration
+                duration = end_date - start_date
+                prev_end_date = start_date
+                prev_start_date = start_date - duration
+            except ValueError:
+                return Response(
+                    {"error": "Invalid date format. Use YYYY-MM-DD"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            # No period specified - return all time totals without comparison
+            donations = Donation.objects.filter(receiver_address=receiver_address).order_by(
+                "-donated_at"
+            )
+            if not donations.exists():
+                return Response(
+                    {"error": "No donations found for this address"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            # Calculate total DIT contributed
+            total_dit = donations.aggregate(total=Sum("dit_amount"))["total"] or Decimal(
+                "0"
+            )
+            dragon_reward = PendingReward.objects.filter(
+                wallet_address=receiver_address, nft_type=NFTType.DRAGON
+            ).aggregate(total_rewards=Sum('dit_amount'))['total_rewards'] or Decimal("0")
+            serializer = DonationSerializer(donations, many=True)
             return Response(
-                {"error": "No donations found for this address"},
-                status=status.HTTP_404_NOT_FOUND,
+                {
+                    "total_dit_contributed": total_dit,
+                    "total_donations_count": donations.count(),
+                    "total_dragon_rewards": dragon_reward,
+                    "donations": serializer.data,
+                },
+                status=status.HTTP_200_OK,
             )
 
-        # Calculate total DIT contributed
-        total_dit = donations.aggregate(total=Sum("dit_amount"))["total"] or Decimal(
-            "0"
-        )
-        dragon_reward = PendingReward.objects.filter(
-            wallet_address=receiver_address, nft_type=NFTType.DRAGON
+        # Get current period donations
+        current_donations = Donation.objects.filter(
+            receiver_address=receiver_address,
+            donated_at__gte=start_date,
+            donated_at__lte=end_date
+        ).order_by("-donated_at")
+
+        # Get current period totals
+        current_total_dit = current_donations.aggregate(total=Sum("dit_amount"))["total"] or Decimal("0")
+        current_donations_count = current_donations.count()
+        current_dragon_rewards = PendingReward.objects.filter(
+            wallet_address=receiver_address,
+            nft_type=NFTType.DRAGON,
+            created_at__gte=start_date,
+            created_at__lte=end_date
         ).aggregate(total_rewards=Sum('dit_amount'))['total_rewards'] or Decimal("0")
-        serializer = DonationSerializer(donations, many=True)
+
+        # Get previous period totals
+        prev_donations = Donation.objects.filter(
+            receiver_address=receiver_address,
+            donated_at__gte=prev_start_date,
+            donated_at__lt=prev_end_date
+        )
+        prev_total_dit = prev_donations.aggregate(total=Sum("dit_amount"))["total"] or Decimal("0")
+        prev_donations_count = prev_donations.count()
+        prev_dragon_rewards = PendingReward.objects.filter(
+            wallet_address=receiver_address,
+            nft_type=NFTType.DRAGON,
+            created_at__gte=prev_start_date,
+            created_at__lt=prev_end_date
+        ).aggregate(total_rewards=Sum('dit_amount'))['total_rewards'] or Decimal("0")
+
+        # Calculate percentage changes
+        def calculate_percentage_change(current, previous):
+            if previous is None or previous == 0:
+                return 100.0 if current and current > 0 else 0.0
+            if current is None:
+                return -100.0
+            return round(
+                ((float(current) - float(previous)) / float(previous)) * 100, 2
+            )
+
+        serializer = DonationSerializer(current_donations, many=True)
         return Response(
             {
-                "total_dit_contributed": total_dit,
-                "total_donations_count": donations.count(),
-                "total_dragon_rewards": dragon_reward,
-                "donations": serializer.data,
+                "period": period,
+                "start_date": start_date.strftime("%Y-%m-%d"),
+                "end_date": end_date.strftime("%Y-%m-%d"),
+                "current_period": {
+                    "total_dit_contributed": current_total_dit,
+                    "total_donations_count": current_donations_count,
+                    "total_dragon_rewards": current_dragon_rewards,
+                    "donations": serializer.data,
+                },
+                "previous_period": {
+                    "total_dit_contributed": prev_total_dit,
+                    "total_donations_count": prev_donations_count,
+                    "total_dragon_rewards": prev_dragon_rewards,
+                },
+                "percentage_change": {
+                    "total_dit_contributed": calculate_percentage_change(
+                        current_total_dit, prev_total_dit
+                    ),
+                    "total_donations_count": calculate_percentage_change(
+                        current_donations_count, prev_donations_count
+                    ),
+                    "total_dragon_rewards": calculate_percentage_change(
+                        current_dragon_rewards, prev_dragon_rewards
+                    ),
+                },
             },
             status=status.HTTP_200_OK,
         )
