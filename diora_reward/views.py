@@ -290,7 +290,7 @@ class PendingRewardAPIView(APIView):
     
     @swagger_auto_schema(
         manual_parameters=[
-            openapi.Parameter('wallet_address', openapi.IN_QUERY, description="Filter by wallet address", type=openapi.TYPE_STRING),
+            openapi.Parameter('wallet_address', openapi.IN_QUERY, description="Filter by specific wallet address (case-insensitive exact match)", type=openapi.TYPE_STRING),
             openapi.Parameter('nft_type', openapi.IN_QUERY, description="Filter by NFT type", type=openapi.TYPE_STRING),
             openapi.Parameter('is_sent', openapi.IN_QUERY, description="Filter by sent status (true/false)", type=openapi.TYPE_BOOLEAN),
         ],
@@ -298,6 +298,7 @@ class PendingRewardAPIView(APIView):
             description="Pending rewards summary by NFT type",
             examples={
                 "application/json": {
+                    "wallet_address": "0x1234567890abcdef",
                     "rewards_by_nft_type": [
                         {
                             "nft_type": "RED",
@@ -328,7 +329,8 @@ class PendingRewardAPIView(APIView):
         is_sent = request.query_params.get('is_sent', None)
         
         if wallet_address:
-            pending_rewards = pending_rewards.filter(wallet_address__icontains=wallet_address)
+            # Use exact match (case-insensitive) for wallet addresses
+            pending_rewards = pending_rewards.filter(wallet_address__iexact=wallet_address)
         if nft_type:
             pending_rewards = pending_rewards.filter(nft_type=nft_type.upper())
         if is_sent is not None:
@@ -347,11 +349,18 @@ class PendingRewardAPIView(APIView):
             total_count=Count('id')
         )
         
-        return Response({
+        # Build response
+        response_data = {
             "rewards_by_nft_type": list(rewards_by_nft),
             "total_pending_rewards": totals['total_amount'] or Decimal('0'),
             "total_pending_count": totals['total_count'] or 0
-        }, status=status.HTTP_200_OK)
+        }
+        
+        # Include wallet_address in response if filtering by wallet
+        if wallet_address:
+            response_data["wallet_address"] = wallet_address
+        
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 class UserRewardClaimDetailAPIView(APIView):
