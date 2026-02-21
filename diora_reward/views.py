@@ -252,22 +252,41 @@ class BulkRewardDistributionAPIView(APIView):
 
 
 class PendingRewardAPIView(APIView):
-    """List pending rewards with pagination and filtering"""
-    pagination_class = StandardResultsSetPagination
+    """Get pending rewards summary grouped by NFT type"""
     
     @swagger_auto_schema(
         manual_parameters=[
             openapi.Parameter('wallet_address', openapi.IN_QUERY, description="Filter by wallet address", type=openapi.TYPE_STRING),
             openapi.Parameter('nft_type', openapi.IN_QUERY, description="Filter by NFT type", type=openapi.TYPE_STRING),
             openapi.Parameter('is_sent', openapi.IN_QUERY, description="Filter by sent status (true/false)", type=openapi.TYPE_BOOLEAN),
-            openapi.Parameter('page', openapi.IN_QUERY, description="Page number", type=openapi.TYPE_INTEGER),
-            openapi.Parameter('page_size', openapi.IN_QUERY, description="Number of results per page (max 100)", type=openapi.TYPE_INTEGER),
         ],
-        responses={200: PendingRewardSerializer(many=True)}
+        responses={200: openapi.Response(
+            description="Pending rewards summary by NFT type",
+            examples={
+                "application/json": {
+                    "rewards_by_nft_type": [
+                        {
+                            "nft_type": "RED",
+                            "total_amount": "10000.000000",
+                            "count": 100
+                        },
+                        {
+                            "nft_type": "DRAGON",
+                            "total_amount": "50000.000000",
+                            "count": 50
+                        }
+                    ],
+                    "total_pending_rewards": "60000.000000",
+                    "total_pending_count": 150
+                }
+            }
+        )}
     )
     def get(self, request):
-        """Get list of all pending rewards with pagination and filtering"""
-        pending_rewards = PendingReward.objects.all().order_by('-created_at')
+        """Get summary of pending rewards grouped by NFT type with total counts"""
+        from django.db.models import Count
+        
+        pending_rewards = PendingReward.objects.all()
         
         # Filters
         wallet_address = request.query_params.get('wallet_address', None)
@@ -282,11 +301,23 @@ class PendingRewardAPIView(APIView):
             is_sent_bool = is_sent.lower() == 'true'
             pending_rewards = pending_rewards.filter(is_sent=is_sent_bool)
         
-        # Pagination
-        paginator = self.pagination_class()
-        paginated_rewards = paginator.paginate_queryset(pending_rewards, request)
-        serializer = PendingRewardSerializer(paginated_rewards, many=True)
-        return paginator.get_paginated_response(serializer.data)
+        # Aggregate by NFT type
+        rewards_by_nft = pending_rewards.values('nft_type').annotate(
+            total_amount=Sum('dit_amount'),
+            count=Count('id')
+        ).order_by('nft_type')
+        
+        # Get overall totals
+        totals = pending_rewards.aggregate(
+            total_amount=Sum('dit_amount'),
+            total_count=Count('id')
+        )
+        
+        return Response({
+            "rewards_by_nft_type": list(rewards_by_nft),
+            "total_pending_rewards": totals['total_amount'] or Decimal('0'),
+            "total_pending_count": totals['total_count'] or 0
+        }, status=status.HTTP_200_OK)
 
 
 class UserRewardClaimDetailAPIView(APIView):
