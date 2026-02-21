@@ -91,3 +91,24 @@ class BulkRewardDistributionSerializer(serializers.Serializer):
         allow_null=True,
         help_text="Optional block number (if already executed on-chain)"
     )
+
+
+class DistributionItemSerializer(serializers.Serializer):
+    """Individual distribution within a grouped transaction"""
+    id = serializers.IntegerField()
+    nft_type = serializers.CharField()
+    total_amount = serializers.DecimalField(max_digits=20, decimal_places=6)
+    per_wallet_amount = serializers.DecimalField(max_digits=20, decimal_places=6)
+    wallet_count = serializers.IntegerField()
+    log_index = serializers.IntegerField()
+
+
+class GroupedRewardDistributionSerializer(serializers.Serializer):
+    """Grouped reward distributions by transaction hash"""
+    transaction_hash = serializers.CharField()
+    block_number = serializers.IntegerField()
+    distributed_at = serializers.DateTimeField()
+    total_distributions = serializers.IntegerField()
+    total_amount_all_types = serializers.DecimalField(max_digits=20, decimal_places=6)
+    total_wallets_all_types = serializers.IntegerField()
+    distributions = DistributionItemSerializer(many=True)
