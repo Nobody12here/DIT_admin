@@ -212,7 +212,7 @@ class BulkRewardDistributionAPIView(APIView):
         
         try:
             with db_transaction.atomic():
-                for dist_data in distributions_data:
+                for log_index, dist_data in enumerate(distributions_data):
                     nft_type = dist_data['nft_type']
                     eligible_wallets = dist_data['eligible_wallets']
                     total_dit_amount = dist_data['total_dit_amount']
@@ -231,7 +231,7 @@ class BulkRewardDistributionAPIView(APIView):
                         per_wallet_amount=per_wallet_amount,
                         wallet_count=wallet_count,
                         transaction_hash=transaction_hash or '',
-                        log_index=0,
+                        log_index=log_index,
                         block_number=block_number or 0,
                         distributed_at=timezone.now()
                     )
