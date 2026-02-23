@@ -42,6 +42,9 @@ CORS_ALLOWED_ORIGINS = [
     "https://dragon.diora.social",
     "https://dragon-donation-d6x9.vercel.app",
     "https://9d74473db0d5.ngrok-free.app",
+    "https://admin.diamond-club.io",
+    "https://api-admin.diamond-club.io",
+    "https://community.diamond-club.io",
 ]
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
