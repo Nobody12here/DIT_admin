@@ -772,6 +772,7 @@ class AllNFTTypesRewardsAPIView(APIView):
     
     @swagger_auto_schema(
         manual_parameters=[
+            openapi.Parameter('wallet_address', openapi.IN_QUERY, description="Filter by specific wallet address to see user's rewards for all NFT types", type=openapi.TYPE_STRING, required=False),
             openapi.Parameter('period', openapi.IN_QUERY, description="Time period filter: 'week', 'month', '6months', 'year', or 'custom'", type=openapi.TYPE_STRING, required=False),
             openapi.Parameter('start_date', openapi.IN_QUERY, description="Start date for custom period (YYYY-MM-DD)", type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, required=False),
             openapi.Parameter('end_date', openapi.IN_QUERY, description="End date for custom period (YYYY-MM-DD)", type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, required=False),
@@ -783,11 +784,14 @@ class AllNFTTypesRewardsAPIView(APIView):
                     "period": "month",
                     "start_date": "2026-01-08",
                     "end_date": "2026-02-07",
+                    "wallet_address": "0x123...",
                     "nft_types": {
                         "RED": {
                             "current_period": {"total_distributed": "10000.00", "total_distributions": 5, "total_wallets_rewarded": 100},
                             "previous_period": {"total_distributed": "8000.00", "total_distributions": 4, "total_wallets_rewarded": 80},
-                            "percentage_change": {"total_distributed": 25.00, "total_distributions": 25.00, "total_wallets_rewarded": 25.00}
+                            "percentage_change": {"total_distributed": 25.00, "total_distributions": 25.00, "total_wallets_rewarded": 25.00},
+                            "wallet_rewards": [{"transaction_hash": "0xabc...", "user_reward": "100.00"}],
+                            "total_user_rewards": "100.00"
                         }
                     }
                 }
@@ -796,6 +800,7 @@ class AllNFTTypesRewardsAPIView(APIView):
     )
     def get(self, request):
         """Get rewards breakdown for all NFT types with percentage changes"""
+        wallet_address = request.query_params.get('wallet_address', None)
         period = request.query_params.get('period', None)
         start_date_str = request.query_params.get('start_date', None)
         end_date_str = request.query_params.get('end_date', None)
@@ -859,10 +864,37 @@ class AllNFTTypesRewardsAPIView(APIView):
                     "total_distributions": total_distributions,
                     "total_wallets_rewarded": totals['total_wallets'] or 0
                 }
+                
+                # If wallet_address is provided, get that wallet's rewards for this NFT type
+                if wallet_address:
+                    wallet_rewards = PendingReward.objects.filter(
+                        wallet_address=wallet_address,
+                        nft_type=nft_type
+                    ).select_related('distribution').order_by('-distribution__distributed_at')
+                    
+                    # Group by transaction hash
+                    grouped_rewards = {}
+                    for reward in wallet_rewards:
+                        tx_hash = reward.distribution.transaction_hash
+                        if tx_hash not in grouped_rewards:
+                            grouped_rewards[tx_hash] = {
+                                'transaction_hash': tx_hash,
+                                'distributed_at': reward.distribution.distributed_at,
+                                'per_wallet_amount': reward.distribution.per_wallet_amount,
+                                'user_reward': Decimal('0'),
+                                'is_sent': reward.is_sent,
+                                'block_number': reward.distribution.block_number
+                            }
+                        grouped_rewards[tx_hash]['user_reward'] += reward.dit_amount
+                    
+                    nft_types_data[nft_type]['wallet_rewards'] = list(grouped_rewards.values())
+                    nft_types_data[nft_type]['total_user_rewards'] = sum(r['user_reward'] for r in grouped_rewards.values())
             
-            return Response({
-                "nft_types": nft_types_data
-            }, status=status.HTTP_200_OK)
+            response_data = {"nft_types": nft_types_data}
+            if wallet_address:
+                response_data['wallet_address'] = wallet_address
+            
+            return Response(response_data, status=status.HTTP_200_OK)
         
         # Calculate percentage changes helper
         def calculate_percentage_change(current, previous):
@@ -929,10 +961,42 @@ class AllNFTTypesRewardsAPIView(APIView):
                     "total_wallets_rewarded": calculate_percentage_change(current_wallets, prev_wallets)
                 }
             }
+            
+            # If wallet_address is provided, get that wallet's rewards for this NFT type in the current period
+            if wallet_address:
+                wallet_rewards = PendingReward.objects.filter(
+                    wallet_address=wallet_address,
+                    nft_type=nft_type,
+                    distribution__distributed_at__gte=start_date,
+                    distribution__distributed_at__lte=end_date
+                ).select_related('distribution').order_by('-distribution__distributed_at')
+                
+                # Group by transaction hash
+                grouped_rewards = {}
+                for reward in wallet_rewards:
+                    tx_hash = reward.distribution.transaction_hash
+                    if tx_hash not in grouped_rewards:
+                        grouped_rewards[tx_hash] = {
+                            'transaction_hash': tx_hash,
+                            'distributed_at': reward.distribution.distributed_at,
+                            'per_wallet_amount': reward.distribution.per_wallet_amount,
+                            'user_reward': Decimal('0'),
+                            'is_sent': reward.is_sent,
+                            'block_number': reward.distribution.block_number
+                        }
+                    grouped_rewards[tx_hash]['user_reward'] += reward.dit_amount
+                
+                nft_types_data[nft_type]['wallet_rewards'] = list(grouped_rewards.values())
+                nft_types_data[nft_type]['total_user_rewards'] = sum(r['user_reward'] for r in grouped_rewards.values())
         
-        return Response({
+        response_data = {
             "period": period,
             "start_date": start_date.strftime('%Y-%m-%d'),
             "end_date": end_date.strftime('%Y-%m-%d'),
             "nft_types": nft_types_data
-        }, status=status.HTTP_200_OK)
+        }
+        
+        if wallet_address:
+            response_data['wallet_address'] = wallet_address
+        
+        return Response(response_data, status=status.HTTP_200_OK)
