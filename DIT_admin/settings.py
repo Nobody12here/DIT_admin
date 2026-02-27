@@ -190,4 +190,4 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Blockchain Configuration for DIT Rewards
 # Set these in environment variables or .env file
 BLOCKCHAIN_RPC_URL = os.getenv('BLOCKCHAIN_RPC_URL', 'https://ethereum-sepolia.wallet.brave.com/')
-DIT_REWARDS_CONTRACT_ADDRESS = os.getenv('DIT_REWARDS_CONTRACT_ADDRESS', '0x8F3Ed04C742266BbC93f20C0F68Eb749eAD96E72')
+DIT_REWARDS_CONTRACT_ADDRESS = os.getenv('DIT_REWARDS_CONTRACT_ADDRESS', '0x166F1FBB2D80b9aE22aEDf57aA455CBedF8d4E0a')
